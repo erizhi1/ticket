@@ -3,7 +3,7 @@
 Un sistema completo de gestión de turnos desarrollado con Vue.js 3 que incluye generación de códigos QR, impresión de tickets y monitoreo en tiempo real.
 
 ## 🌐 **Demo en Vivo**
-🚀 **[Ver Demo](https://tu-usuario.github.io/sistema-turnos-qr/)**
+🚀 **[Ver Demo](https://erizhi1.github.io/ticket/)**
 
 ## 🚀 Características
 
