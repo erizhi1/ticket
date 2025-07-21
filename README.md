@@ -5,6 +5,10 @@ Un sistema completo de gestión de turnos desarrollado con Vue.js 3 que incluye 
 ## 🌐 **Demo en Vivo**
 🚀 **[Ver Demo](https://erizhi1.github.io/ticket/)**
 
+📱 **QR Demo**: [Página del QR](https://erizhi1.github.io/ticket/current-ticket.html)
+
+📊 **Repositorio**: [GitHub](https://github.com/erizhi1/ticket)
+
 ## 🚀 Características
 
 ### ✨ Funcionalidades Principales
@@ -20,6 +24,19 @@ Un sistema completo de gestión de turnos desarrollado con Vue.js 3 que incluye 
 2. **QR apunta a página web**: El código QR dirige a una URL que muestra el turno actual siendo atendido
 3. **Monitoreo remoto**: El cliente puede escanear su QR en cualquier momento para ver qué turno se está atendiendo actualmente
 4. **Panel de administración**: Permite llamar al siguiente turno, finalizar atenciones y gestionar la cola
+
+## 📱 **Prueba el Sistema**
+
+### 🎮 **Modo Demo Interactivo**
+1. **Visita**: https://erizhi1.github.io/ticket/
+2. **Genera tickets** en la pestaña "Generar Tickets"
+3. **Simula el QR** viendo la pestaña "Panel Público"
+4. **Administra la cola** en la pestaña "Administración"
+
+### 📲 **Simulación de QR Real**
+- Los QR generados apuntan a: https://erizhi1.github.io/ticket/current-ticket.html
+- Puedes abrir esta URL en tu móvil para simular el escaneo
+- La página se actualiza automáticamente cada 3 segundos
 
 ## 🛠️ Tecnologías Utilizadas
 
@@ -38,8 +55,9 @@ Un sistema completo de gestión de turnos desarrollado con Vue.js 3 que incluye 
 
 ### Pasos de Instalación
 
-1. **Clonar o descargar el proyecto**
+1. **Clonar el repositorio**
    ```bash
+   git clone https://github.com/erizhi1/ticket.git
    cd ticket
    ```
 
@@ -57,6 +75,14 @@ Un sistema completo de gestión de turnos desarrollado con Vue.js 3 que incluye 
    ```
    http://localhost:5173
    ```
+
+### 🏗️ Compilar para Producción
+
+```bash
+npm run build
+```
+
+Los archivos compilados se generarán en la carpeta `dist/`.
 
 ## 🎮 Uso del Sistema
 
@@ -127,26 +153,39 @@ function getQRUrl(ticketId) {
 
 ## 🌐 Despliegue en Producción
 
-### 1. Build del Proyecto
-```bash
-npm run build
-```
+### GitHub Pages (Automático)
+Este proyecto está configurado para desplegarse automáticamente en GitHub Pages:
 
-### 2. Configurar Servidor Web
-- Sube los archivos de la carpeta `dist/` a tu servidor
-- Asegúrate de que `current-ticket.html` esté accesible
-- Configura un dominio o subdominio
+- ✅ **URL del Demo**: https://erizhi1.github.io/ticket/
+- ✅ **Página QR**: https://erizhi1.github.io/ticket/current-ticket.html
+- ✅ **Despliegue automático** con cada push a la rama `main`
 
-### 3. Actualizar URLs
-- Modifica `getQRUrl()` en el store para usar tu dominio
-- Actualiza cualquier referencia a localhost
+### Configurar en tu propio servidor
 
-### 4. Consideraciones de Servidor
+1. **Compilar el proyecto**
+   ```bash
+   npm run build
+   ```
+
+2. **Configurar servidor web**
+   - Sube los archivos de la carpeta `dist/` a tu servidor
+   - Asegúrate de que `current-ticket.html` esté accesible
+   - Configura un dominio o subdominio
+
+3. **Actualizar URLs en el código**
+   - Modifica `getQRUrl()` en `src/stores/ticketStore.js`:
+   ```javascript
+   function getQRUrl(ticketId) {
+     return `https://tu-dominio.com/current-ticket.html`
+   }
+   ```
+
+### Consideraciones para Servidor Real
 Para una implementación completa en producción:
-- Implementar una API backend real
-- Base de datos para persistir turnos
-- WebSockets para actualizaciones en tiempo real
-- Autenticación para el panel de administración
+- **API Backend**: Implementar servidor real para persistir datos
+- **Base de datos**: Para mantener turnos entre sesiones
+- **WebSockets**: Para actualizaciones en tiempo real
+- **Autenticación**: Para el panel de administración
 
 ## 🔧 Desarrollo y Extensiones
 
@@ -189,15 +228,26 @@ src/
 
 Este proyecto es de código abierto y está disponible bajo la licencia MIT.
 
+## 👨‍💻 Autor
+
+**Erich Gomez**
+- GitHub: [@erizhi1](https://github.com/erizhi1)
+- Email: erich.gomez.aguilera@gmail.com
+- Repositorio: [ticket](https://github.com/erizhi1/ticket)
+
 ## 🤝 Contribuciones
 
 Las contribuciones son bienvenidas. Por favor:
 1. Fork el proyecto
-2. Crea una rama para tu feature
-3. Commit tus cambios
-4. Push a la rama
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
 5. Abre un Pull Request
+
+## ⭐ ¿Te gustó el proyecto?
+
+Si este proyecto te fue útil, ¡no olvides darle una estrella! ⭐
 
 ---
 
-**Desarrollado con ❤️ usando Vue.js 3**
+**Desarrollado con ❤️ usando Vue.js 3 | [Demo en Vivo](https://erizhi1.github.io/ticket/)**
