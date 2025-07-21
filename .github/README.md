@@ -1,43 +1,37 @@
 # 🔧 Configuración de GitHub Pages
 
-## Problema: Pages No Configurado
+## ✅ Solución Final: Token Personal
 
-El error indica que GitHub Pages no está habilitado:
-```
-Error: Get Pages site failed. Please verify that the repository has Pages enabled
-```
+### Problema Resuelto
+Los permisos del GITHUB_TOKEN no son suficientes. Solución: usar Personal Access Token.
 
-## ✅ Solución Implementada
+### 🔑 Pasos para Configurar Token:
 
-### 1. **Configuración Manual Requerida**
+1. **Crear Personal Access Token**:
+   - Ve a: https://github.com/settings/tokens
+   - "Generate new token" → "Generate new token (classic)"
+   - **Name**: "GitHub Pages Deploy"
+   - **Scopes**: Marca "repo" completo
+   - **Copia el token** (solo se muestra una vez)
 
-**IMPORTANTE**: Antes de que funcione el despliegue automático, debes:
+2. **Agregar a Repository Secrets**:
+   - Ve a: https://github.com/erizhi1/ticket/settings/secrets/actions
+   - "New repository secret"
+   - **Name**: `PERSONAL_TOKEN`
+   - **Secret**: Pega tu token
+   - "Add secret"
 
-1. **Ir a tu repositorio**: https://github.com/erizhi1/ticket
-2. **Settings** → **Pages** 
-3. **Source**: Seleccionar "GitHub Actions"
-4. **Save**
+3. **Push del código** (ya actualizado)
 
-### 2. **GitHub Action Actualizada**
+### 🚀 Resultado Esperado
 
-- ✅ Reverted a `peaceiris/actions-gh-pages@v3` (más compatible)
-- ✅ Configuración simplificada que funciona sin pre-configuración
-- ✅ `force_orphan: true` para crear rama gh-pages automáticamente
+Una vez configurado el token:
+- ✅ **Demo**: https://erizhi1.github.io/ticket/
+- ✅ **QR Page**: https://erizhi1.github.io/ticket/current-ticket.html
+- ✅ **Auto-deploy** funcionando
 
-### 3. **Una Vez Configurado**
+### � Estado Actual
 
-Después de configurar Pages en Settings:
-- 🚀 **Demo**: https://erizhi1.github.io/ticket/
-- 📱 **QR Page**: https://erizhi1.github.io/ticket/current-ticket.html
-- 🔄 **Auto-deploy** con cada push
-
-## 🚨 Pasos Críticos
-
-1. **IR A SETTINGS → PAGES → SOURCE: "GitHub Actions"** ← ESTO ES ESENCIAL
-2. Hacer push del código
-3. Ver en Actions tab el progreso del despliegue
-
-## Estado Actual
-
-- ✅ GitHub Action configurada correctamente
-- ⏳ **Pendiente**: Habilitar Pages en Settings del repositorio
+- ✅ GitHub Action actualizada para usar PERSONAL_TOKEN
+- ✅ Configuración simplificada
+- ⏳ **Pendiente**: Crear y agregar token personal
