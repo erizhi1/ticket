@@ -65,6 +65,7 @@ import { useTicketStore } from '../stores/ticketStore'
 import QRCodePrintable from './QRCodePrintable.vue'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
+import QRCode from 'qrcode'
 
 const ticketStore = useTicketStore()
 const isGenerating = ref(false)
@@ -111,8 +112,7 @@ async function printTicket() {
     // Generar QR directamente para la impresión
     let qrImageSrc = ''
     try {
-      // Intentar generar QR como base64
-      const QRCode = (await import('qrcode')).default
+      // Usar la librería importada estáticamente
       qrImageSrc = await QRCode.toDataURL(qrUrl.value, {
         width: 120,
         margin: 2,
@@ -306,25 +306,102 @@ async function printTicket() {
 
 async function downloadTicket() {
   try {
-    // Esperar un poco para que las imágenes se carguen completamente
+    console.log('Iniciando descarga del ticket PDF...')
+    
+    // Generar QR directamente para el PDF
+    let qrImageSrc = ''
+    try {
+      qrImageSrc = await QRCode.toDataURL(qrUrl.value, {
+        width: 120,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#ffffff'
+        },
+        type: 'image/png'
+      })
+      console.log('QR generado para PDF exitosamente')
+    } catch (qrError) {
+      console.warn('Error generando QR para PDF, usando API fallback:', qrError)
+      const encodedValue = encodeURIComponent(qrUrl.value)
+      qrImageSrc = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodedValue}&format=png`
+    }
+
+    // Crear un elemento temporal con el ticket y QR embebido
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = `
+      <div style="
+        width: 280px;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+        background: white;
+        color: black;
+        border: 2px solid #000;
+      ">
+        <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px dashed #ccc; padding-bottom: 15px;">
+          <h3 style="margin: 0 0 10px 0; font-size: 18px;">SISTEMA DE TURNOS</h3>
+          <div style="font-size: 48px; font-weight: bold; color: #007bff; margin: 10px 0;">
+            ${generatedTicket.value?.number}
+          </div>
+        </div>
+        
+        <div style="margin: 15px 0;">
+          <p style="margin: 8px 0; font-size: 14px;"><strong>Fecha:</strong> ${formatDate(generatedTicket.value?.timestamp)}</p>
+          <p style="margin: 8px 0; font-size: 14px;"><strong>Hora:</strong> ${formatTime(generatedTicket.value?.timestamp)}</p>
+          <p style="margin: 15px 0; font-weight: bold; color: #dc3545;">Personas delante: ${queuePosition.value}</p>
+        </div>
+        
+        <div style="text-align: center; margin: 20px 0; border: 1px dashed #ccc; padding: 15px;">
+          <img src="${qrImageSrc}" alt="QR Code" width="120" height="120" style="display: block; margin: 0 auto; background: white; border: 1px solid #000;" />
+          <p style="font-size: 12px; margin: 10px 0; color: #666;">Escanea para ver el turno actual</p>
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px;">
+          <p style="font-weight: bold; margin: 10px 0;">Conserve este ticket</p>
+          <small style="font-size: 10px; color: #666; word-break: break-all;">${qrUrl.value}</small>
+        </div>
+      </div>
+    `
+    
+    // Agregar temporalmente al DOM (oculto)
+    tempDiv.style.position = 'absolute'
+    tempDiv.style.left = '-9999px'
+    tempDiv.style.top = '-9999px'
+    document.body.appendChild(tempDiv)
+    
+    // Esperar un poco para que las imágenes se carguen
     await new Promise(resolve => setTimeout(resolve, 1000))
     
-    const canvas = await html2canvas(ticketRef.value, {
+    // Capturar con html2canvas
+    const canvas = await html2canvas(tempDiv.firstElementChild, {
       backgroundColor: '#ffffff',
       scale: 2,
       useCORS: true,
       allowTaint: true,
-      foreignObjectRendering: true
+      foreignObjectRendering: true,
+      logging: false
     })
     
+    // Remover el elemento temporal
+    document.body.removeChild(tempDiv)
+    
+    // Crear PDF
     const pdf = new jsPDF('p', 'mm', [80, 120]) // Tamaño de ticket pequeño
     const imgData = canvas.toDataURL('image/png')
     
-    pdf.addImage(imgData, 'PNG', 5, 5, 70, 110)
+    // Agregar imagen al PDF
+    const imgWidth = 70
+    const imgHeight = (canvas.height * imgWidth) / canvas.width
+    pdf.addImage(imgData, 'PNG', 5, 5, imgWidth, imgHeight)
+    
+    // Descargar
     pdf.save(`ticket-${generatedTicket.value?.number}.pdf`)
+    
+    console.log('PDF generado exitosamente')
+    
   } catch (error) {
-    console.error('Error al descargar:', error)
-    alert('Error al descargar el ticket')
+    console.error('Error al generar PDF:', error)
+    alert('Error al generar el PDF: ' + error.message)
   }
 }
 
