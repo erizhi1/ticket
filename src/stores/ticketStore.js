@@ -25,6 +25,38 @@ export const useTicketStore = defineStore('ticket', () => {
   
   const queueLength = computed(() => waitingQueue.value.length)
   
+  // Función para guardar el estado en localStorage
+  function saveToLocalStorage() {
+    const state = {
+      currentNumber: currentNumber.value,
+      servingNumber: servingNumber.value,
+      waitingQueue: waitingQueue.value,
+      servedTickets: servedTickets.value,
+      servicePrefix: servicePrefix.value,
+      currentServingTicket: currentServingTicket.value,
+      queueLength: queueLength.value,
+      lastUpdate: new Date().toISOString()
+    }
+    localStorage.setItem('ticketSystemData', JSON.stringify(state))
+  }
+
+  // Función para cargar el estado desde localStorage
+  function loadFromLocalStorage() {
+    try {
+      const saved = localStorage.getItem('ticketSystemData')
+      if (saved) {
+        const state = JSON.parse(saved)
+        currentNumber.value = state.currentNumber || 1
+        servingNumber.value = state.servingNumber || 0
+        waitingQueue.value = state.waitingQueue || []
+        servedTickets.value = state.servedTickets || []
+        servicePrefix.value = state.servicePrefix || 'A'
+      }
+    } catch (error) {
+      console.error('Error cargando datos:', error)
+    }
+  }
+  
   // Acciones
   function generateTicket() {
     const ticket = {
@@ -37,6 +69,9 @@ export const useTicketStore = defineStore('ticket', () => {
     waitingQueue.value.push(ticket)
     currentNumber.value++
     
+    // Guardar en localStorage
+    saveToLocalStorage()
+    
     return ticket
   }
   
@@ -46,6 +81,10 @@ export const useTicketStore = defineStore('ticket', () => {
       servingNumber.value = nextTicket.id
       nextTicket.status = 'serving'
       servedTickets.value.push(nextTicket)
+      
+      // Guardar en localStorage
+      saveToLocalStorage()
+      
       return nextTicket
     }
     return null
@@ -59,6 +98,9 @@ export const useTicketStore = defineStore('ticket', () => {
         ticket.completedAt = new Date()
       }
       servingNumber.value = 0
+      
+      // Guardar en localStorage
+      saveToLocalStorage()
     }
   }
   
@@ -67,6 +109,9 @@ export const useTicketStore = defineStore('ticket', () => {
     servingNumber.value = 0
     waitingQueue.value = []
     servedTickets.value = []
+    
+    // Guardar en localStorage
+    saveToLocalStorage()
   }
   
   function getQRUrl(ticketId) {
@@ -87,6 +132,9 @@ export const useTicketStore = defineStore('ticket', () => {
     }
   }
 
+  // Inicializar el store cargando datos del localStorage
+  loadFromLocalStorage()
+
   return { 
     // Estado
     currentNumber,
@@ -106,6 +154,8 @@ export const useTicketStore = defineStore('ticket', () => {
     callNextTicket,
     finishCurrentTicket,
     resetSystem,
-    getQRUrl
+    getQRUrl,
+    saveToLocalStorage,
+    loadFromLocalStorage
   }
 })

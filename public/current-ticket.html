@@ -49,8 +49,8 @@
       opacity: 0.9;
     }
 
-    .serving-section {
-      margin: 40px 0;
+    .status-section {
+      margin-bottom: 40px;
     }
 
     .serving-label {
@@ -63,89 +63,81 @@
       font-size: 4rem;
       font-weight: bold;
       text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3);
-      animation: pulse 2s infinite;
       margin: 20px 0;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      animation: pulse 2s infinite;
     }
 
-    .no-ticket {
-      color: #ffeb3b;
+    .current-ticket.no-ticket {
+      color: #ffcccc;
       font-size: 2rem;
+      opacity: 0.7;
     }
 
     .queue-info {
       display: flex;
-      justify-content: center;
-      gap: 30px;
+      justify-content: space-around;
       margin: 30px 0;
-      flex-wrap: wrap;
+      gap: 20px;
     }
 
     .stat {
-      background: rgba(255, 255, 255, 0.15);
-      border-radius: 15px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
       padding: 20px;
       min-width: 100px;
-      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
     .stat-number {
-      display: block;
       font-size: 2rem;
       font-weight: bold;
-      color: #ffeb3b;
+      display: block;
     }
 
     .stat-label {
-      display: block;
       font-size: 0.9rem;
       opacity: 0.8;
       margin-top: 5px;
     }
 
-    .footer {
-      margin-top: 40px;
-      opacity: 0.8;
-    }
-
-    .auto-refresh {
-      font-size: 0.9rem;
-      margin-bottom: 10px;
-    }
-
-    .last-updated {
-      font-size: 0.8rem;
-      opacity: 0.6;
-    }
-
-    .status-indicator {
+    .status-bar {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 15px;
+      gap: 10px;
       margin: 20px 0;
     }
 
     .indicator {
-      width: 20px;
-      height: 20px;
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
       position: relative;
     }
 
     .indicator.active {
-      background: #4caf50;
+      background: #4CAF50;
+    }
+
+    .indicator.waiting {
+      background: #FF9800;
     }
 
     .indicator.idle {
-      background: #f44336;
+      background: #9E9E9E;
     }
 
-    .pulse-ring {
+    .indicator.active::before {
+      content: '';
       position: absolute;
-      top: -5px;
-      left: -5px;
-      right: -5px;
-      bottom: -5px;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
       border-radius: 50%;
       border: 2px solid currentColor;
       animation: pulse-ring 2s infinite;
@@ -167,6 +159,12 @@
       }
     }
 
+    .last-update {
+      margin-top: 30px;
+      font-size: 0.9rem;
+      opacity: 0.7;
+    }
+
     @media (max-width: 768px) {
       .header h1 {
         font-size: 2rem;
@@ -177,6 +175,7 @@
       }
       
       .queue-info {
+        flex-direction: column;
         gap: 15px;
       }
       
@@ -198,59 +197,49 @@
       <div class="current-time" id="currentTime"></div>
     </div>
 
-    <div class="serving-section">
-      <div class="serving-label">Atendiendo Ahora</div>
+    <div class="status-section">
+      <div class="serving-label">Atendiendo Ahora:</div>
       <div class="current-ticket" id="currentTicket">A000</div>
     </div>
 
     <div class="queue-info">
       <div class="stat">
         <span class="stat-number" id="queueLength">0</span>
-        <span class="stat-label">En Cola</span>
+        <div class="stat-label">En Cola</div>
       </div>
       <div class="stat">
         <span class="stat-number" id="servedCount">0</span>
-        <span class="stat-label">Atendidos</span>
+        <div class="stat-label">Atendidos</div>
       </div>
     </div>
 
-    <div class="status-indicator">
-      <div class="indicator" id="statusIndicator">
-        <div class="pulse-ring"></div>
-      </div>
-      <span id="statusText">Consultando estado...</span>
+    <div class="status-bar">
+      <div class="indicator idle" id="statusIndicator"></div>
+      <span id="statusText">Sistema inactivo</span>
     </div>
 
-    <div class="footer">
-      <div class="auto-refresh">🔄 Actualización automática cada 3 segundos</div>
-      <div class="last-updated">Última actualización: <span id="lastUpdated"></span></div>
+    <div class="last-update">
+      Última actualización: <span id="lastUpdated">--:--:--</span>
     </div>
   </div>
 
   <script>
-    // Simulación de datos del store (en una implementación real, esto vendría de una API)
-    let mockData = {
-      currentServingTicket: 'Ninguno',
-      servingNumber: 0,
-      queueLength: 0,
-      servedTickets: []
-    };
-
     function updateTime() {
       const now = new Date();
-      document.getElementById('currentTime').textContent = now.toLocaleTimeString('es-ES', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-      });
+      document.getElementById('currentTime').textContent = 
+        now.toLocaleString('es-ES', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
     }
 
     function updateDisplay() {
-      // En una implementación real, aquí harías una llamada fetch a tu API
-      // fetch('/api/current-status').then(response => response.json()).then(data => { ... })
-      
-      // Por ahora, simulamos datos cambiantes
-      simulateDataChange();
+      // Obtener datos reales del localStorage
+      const data = getLocalTicketData();
       
       const currentTicketEl = document.getElementById('currentTicket');
       const queueLengthEl = document.getElementById('queueLength');
@@ -260,18 +249,18 @@
       const lastUpdatedEl = document.getElementById('lastUpdated');
 
       // Actualizar ticket actual
-      currentTicketEl.textContent = mockData.currentServingTicket;
-      currentTicketEl.className = 'current-ticket' + (mockData.servingNumber === 0 ? ' no-ticket' : '');
+      currentTicketEl.textContent = data.currentServingTicket;
+      currentTicketEl.className = 'current-ticket' + (data.servingNumber === 0 ? ' no-ticket' : '');
 
       // Actualizar estadísticas
-      queueLengthEl.textContent = mockData.queueLength;
-      servedCountEl.textContent = mockData.servedTickets.length;
+      queueLengthEl.textContent = data.queueLength;
+      servedCountEl.textContent = data.servedTickets.length;
 
       // Actualizar indicador de estado
-      if (mockData.servingNumber > 0) {
+      if (data.servingNumber > 0) {
         statusIndicatorEl.className = 'indicator active';
         statusTextEl.textContent = 'Sistema activo - Atendiendo';
-      } else if (mockData.queueLength > 0) {
+      } else if (data.queueLength > 0) {
         statusIndicatorEl.className = 'indicator waiting';
         statusTextEl.textContent = 'En espera - Hay turnos pendientes';
       } else {
@@ -288,28 +277,31 @@
       });
     }
 
-    function simulateDataChange() {
-      // Simular cambios en los datos para demostración
-      const random = Math.random();
-      
-      if (random < 0.1) { // 10% de probabilidad de cambio
-        if (mockData.servingNumber === 0 && mockData.queueLength > 0) {
-          // Llamar siguiente ticket
-          mockData.servingNumber = Math.floor(Math.random() * 100) + 1;
-          mockData.currentServingTicket = `A${String(mockData.servingNumber).padStart(3, '0')}`;
-          mockData.queueLength = Math.max(0, mockData.queueLength - 1);
-        } else if (mockData.servingNumber > 0 && random < 0.05) {
-          // Finalizar ticket actual
-          mockData.servedTickets.push({ id: mockData.servingNumber });
-          mockData.servingNumber = 0;
-          mockData.currentServingTicket = 'Ninguno';
+    function getLocalTicketData() {
+      try {
+        const storedData = localStorage.getItem('ticketSystemData');
+        if (storedData) {
+          const data = JSON.parse(storedData);
+          return {
+            currentServingTicket: data.currentServingTicket || 'Ninguno',
+            servingNumber: data.servingNumber || 0,
+            queueLength: data.queueLength || 0,
+            servedTickets: data.servedTickets || [],
+            lastUpdate: data.lastUpdate
+          };
         }
+      } catch (error) {
+        console.error('Error leyendo datos del localStorage:', error);
       }
       
-      // Ocasionalmente agregar tickets a la cola
-      if (random < 0.05 && mockData.queueLength < 10) {
-        mockData.queueLength++;
-      }
+      // Datos por defecto si no hay nada guardado
+      return {
+        currentServingTicket: 'Ninguno',
+        servingNumber: 0,
+        queueLength: 0,
+        servedTickets: [],
+        lastUpdate: new Date().toISOString()
+      };
     }
 
     // Inicializar
@@ -318,15 +310,7 @@
 
     // Configurar intervalos
     setInterval(updateTime, 1000); // Actualizar reloj cada segundo
-    setInterval(updateDisplay, 3000); // Actualizar datos cada 3 segundos
-
-    // Datos iniciales de ejemplo
-    mockData = {
-      currentServingTicket: 'A005',
-      servingNumber: 5,
-      queueLength: 3,
-      servedTickets: [1, 2, 3, 4]
-    };
+    setInterval(updateDisplay, 2000); // Actualizar datos cada 2 segundos
   </script>
 </body>
 </html>
