@@ -137,49 +137,12 @@ Los archivos compilados se generarán en la carpeta `dist/`.
 ### Modificar Prefijo de Tickets
 En el panel de administración, puedes cambiar el prefijo (A, B, C, etc.) para diferentes servicios.
 
-### Configurar URL del QR
-En `src/stores/ticketStore.js`, modifica la función `getQRUrl()`:
-
-```javascript
-function getQRUrl(ticketId) {
-  // Cambiar por tu dominio en producción
-  return `https://tu-dominio.com/current-ticket.html`
-}
-```
-
-### Personalizar Estilos
-- Modifica los componentes Vue en `src/components/`
-- Personaliza `current-ticket.html` para el diseño del panel público
-- Ajusta colores y fuentes en los archivos de estilo
-
-## 🌐 Despliegue en Producción
-
 ### GitHub Pages (Automático)
 Este proyecto está configurado para desplegarse automáticamente en GitHub Pages:
 
 - ✅ **URL del Demo**: https://erizhi1.github.io/ticket/
 - ✅ **Página QR**: https://erizhi1.github.io/ticket/current-ticket.html
 - ✅ **Despliegue automático** con cada push a la rama `main`
-
-### Configurar en tu propio servidor
-
-1. **Compilar el proyecto**
-   ```bash
-   npm run build
-   ```
-
-2. **Configurar servidor web**
-   - Sube los archivos de la carpeta `dist/` a tu servidor
-   - Asegúrate de que `current-ticket.html` esté accesible
-   - Configura un dominio o subdominio
-
-3. **Actualizar URLs en el código**
-   - Modifica `getQRUrl()` en `src/stores/ticketStore.js`:
-   ```javascript
-   function getQRUrl(ticketId) {
-     return `https://tu-dominio.com/current-ticket.html`
-   }
-   ```
 
 ### Consideraciones para Servidor Real
 Para una implementación completa en producción:
@@ -211,12 +174,6 @@ src/
 - **Reportes**: Estadísticas detalladas y reportes de productividad
 - **Impresora Térmica**: Integración directa con impresoras de tickets
 
-## 🐛 Solución de Problemas
-
-### El QR no funciona
-- Verifica que `current-ticket.html` esté accesible
-- Comprueba la URL generada en `getQRUrl()`
-
 ### Los estilos no se cargan
 - Ejecuta `npm run build` y verifica los archivos generados
 - Asegúrate de que las rutas sean correctas en el servidor
@@ -236,14 +193,7 @@ Este proyecto es de código abierto y está disponible bajo la licencia MIT.
 - Email: erich.gomez.aguilera@gmail.com
 - Repositorio: [ticket](https://github.com/erizhi1/ticket)
 
-## 🤝 Contribuciones
 
-Las contribuciones son bienvenidas. Por favor:
-1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
 
 ## ⭐ ¿Te gustó el proyecto?
 
