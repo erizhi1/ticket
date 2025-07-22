@@ -37,6 +37,7 @@
                 <QRCodePrintable 
                   :value="qrUrl" 
                   :size="120"
+                  :showDebug="true"
                 />
               </div>
               <p class="qr-text">Escanea para ver el turno actual</p>
@@ -107,17 +108,42 @@ function closeTicket() {
 async function printTicket() {
   try {
     // Esperar un poco para que las imágenes se carguen completamente
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    await new Promise(resolve => setTimeout(resolve, 1500))
     
-    // Intentar captura con html2canvas
+    // Obtener todas las imágenes del ticket
+    const ticketElement = ticketRef.value
+    const images = ticketElement.querySelectorAll('img')
+    
+    // Crear una copia del contenido con las imágenes base64 embebidas
+    const clonedElement = ticketElement.cloneNode(true)
+    const clonedImages = clonedElement.querySelectorAll('img')
+    
+    // Asegurar que todas las imágenes tengan src base64
+    for (let i = 0; i < images.length; i++) {
+      if (images[i].src && images[i].src.startsWith('data:')) {
+        clonedImages[i].src = images[i].src
+      }
+    }
+    
+    // Intentar captura con html2canvas primero
     try {
-      const canvas = await html2canvas(ticketRef.value, {
+      const canvas = await html2canvas(ticketElement, {
         backgroundColor: '#ffffff',
         scale: 2,
         useCORS: true,
         allowTaint: true,
         foreignObjectRendering: true,
-        logging: false
+        logging: false,
+        onclone: (clonedDoc) => {
+          // Asegurar que las imágenes se muestren en el clone
+          const clonedImages = clonedDoc.querySelectorAll('img')
+          const originalImages = ticketElement.querySelectorAll('img')
+          clonedImages.forEach((img, index) => {
+            if (originalImages[index] && originalImages[index].src.startsWith('data:')) {
+              img.src = originalImages[index].src
+            }
+          })
+        }
       })
       
       // Verificar si el canvas tiene contenido
@@ -152,8 +178,8 @@ async function printTicket() {
       console.warn('Error con html2canvas, usando método alternativo:', canvasError)
     }
     
-    // Método alternativo: impresión directa del HTML
-    const printContent = ticketRef.value.innerHTML
+    // Método alternativo: impresión directa del HTML con imágenes embebidas
+    const printContent = clonedElement.innerHTML
     const printWindow = window.open('', '_blank')
     printWindow.document.write(`
       <html>
@@ -181,6 +207,8 @@ async function printTicket() {
               print-color-adjust: exact !important; 
               background: white !important;
               border: 1px solid #ddd;
+              display: block !important;
+              visibility: visible !important;
             }
             @media print {
               body { padding: 0; margin: 0; }
@@ -189,6 +217,8 @@ async function printTicket() {
                 print-color-adjust: exact !important; 
                 background: white !important;
                 filter: none !important;
+                display: block !important;
+                visibility: visible !important;
               }
             }
           </style>
@@ -201,7 +231,11 @@ async function printTicket() {
       </html>
     `)
     printWindow.document.close()
-    printWindow.print()
+    
+    // Esperar un poco antes de imprimir para que las imágenes se carguen
+    setTimeout(() => {
+      printWindow.print()
+    }, 500)
     
   } catch (error) {
     console.error('Error al imprimir:', error)
