@@ -106,8 +106,7 @@ function closeTicket() {
 
 async function printTicket() {
   try {
-    // Esperar un poco para que las imágenes se carguen completamente
-    await new Promise(resolve => setTimeout(resolve, 500))
+    console.log('Iniciando impresión del ticket...')
     
     // Generar QR directamente para la impresión
     let qrImageSrc = ''
@@ -123,11 +122,16 @@ async function printTicket() {
         },
         type: 'image/png'
       })
-      console.log('QR generado para impresión:', qrImageSrc.substring(0, 50) + '...')
+      console.log('QR generado exitosamente, tamaño:', qrImageSrc.length, 'bytes')
     } catch (qrError) {
       console.warn('Error generando QR, usando API fallback:', qrError)
       const encodedValue = encodeURIComponent(qrUrl.value)
       qrImageSrc = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodedValue}&format=png`
+    }
+    
+    // Verificar que tenemos el QR
+    if (!qrImageSrc) {
+      throw new Error('No se pudo generar el código QR')
     }
     
     // Crear el HTML de impresión con QR embebido
@@ -139,7 +143,7 @@ async function printTicket() {
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { 
-              font-family: 'Arial', sans-serif;
+              font-family: Arial, sans-serif;
               padding: 20px; 
               background: white;
               color: black;
@@ -178,13 +182,15 @@ async function printTicket() {
               text-align: center; 
               margin: 20px 0; 
               background: white;
+              border: 1px dashed #ccc;
+              padding: 15px;
             }
             .qr-code {
               margin: 10px 0;
             }
             .qr-code img { 
-              border: 1px solid #ddd;
-              background: white;
+              border: 2px solid #000;
+              background: white !important;
               display: block;
               margin: 0 auto;
             }
@@ -215,7 +221,7 @@ async function printTicket() {
                 -webkit-print-color-adjust: exact !important; 
                 print-color-adjust: exact !important; 
                 background: white !important;
-                border: 1px solid #000 !important;
+                border: 2px solid #000 !important;
               }
             }
           </style>
@@ -234,7 +240,7 @@ async function printTicket() {
               
               <div class="qr-section">
                 <div class="qr-code">
-                  <img src="${qrImageSrc}" alt="QR Code" width="120" height="120" />
+                  <img src="${qrImageSrc}" alt="QR Code" width="120" height="120" style="display: block; margin: 0 auto; background: white;" />
                 </div>
                 <p class="qr-text">Escanea para ver el turno actual</p>
               </div>
@@ -245,6 +251,38 @@ async function printTicket() {
               </div>
             </div>
           </div>
+          
+          <script>
+            console.log('Ticket cargado, preparando impresion...');
+            
+            function doPrint() {
+              console.log('Ejecutando impresion...');
+              window.print();
+            }
+            
+            var qrImg = document.querySelector('.qr-code img');
+            if (qrImg && qrImg.src.indexOf('data:') === 0) {
+              console.log('QR base64 detectado, imprimiendo inmediatamente');
+              setTimeout(doPrint, 200);
+            } else if (qrImg) {
+              if (qrImg.complete) {
+                console.log('QR externo ya cargado');
+                setTimeout(doPrint, 200);
+              } else {
+                qrImg.onload = function() {
+                  console.log('QR externo cargado');
+                  setTimeout(doPrint, 200);
+                };
+                qrImg.onerror = function() {
+                  console.log('Error cargando QR, imprimiendo de todas formas');
+                  setTimeout(doPrint, 200);
+                };
+              }
+            } else {
+              console.log('No se encontro QR, imprimiendo de todas formas');
+              setTimeout(doPrint, 500);
+            }
+          </scrip` + `t>
         </body>
       </html>
     `
@@ -256,15 +294,9 @@ async function printTicket() {
       return
     }
     
+    console.log('Escribiendo HTML a la ventana de impresión...')
     printWindow.document.write(printHTML)
     printWindow.document.close()
-    
-    // Esperar a que se cargue todo antes de imprimir
-    printWindow.onload = () => {
-      setTimeout(() => {
-        printWindow.print()
-      }, 1000)
-    }
     
   } catch (error) {
     console.error('Error al imprimir:', error)
