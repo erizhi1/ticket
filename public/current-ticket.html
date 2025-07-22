@@ -221,6 +221,10 @@
     <div class="last-update">
       Última actualización: <span id="lastUpdated">--:--:--</span>
     </div>
+
+    <div style="margin-top: 20px; font-size: 0.8rem; opacity: 0.6;" id="debugInfo">
+      <!-- Información de debug se mostrará aquí -->
+    </div>
   </div>
 
   <script>
@@ -238,7 +242,7 @@
     }
 
     function updateDisplay() {
-      // Obtener datos reales del localStorage
+      // Obtener datos reales del localStorage o URL
       const data = getLocalTicketData();
       
       const currentTicketEl = document.getElementById('currentTicket');
@@ -247,6 +251,7 @@
       const statusIndicatorEl = document.getElementById('statusIndicator');
       const statusTextEl = document.getElementById('statusText');
       const lastUpdatedEl = document.getElementById('lastUpdated');
+      const debugInfoEl = document.getElementById('debugInfo');
 
       // Actualizar ticket actual
       currentTicketEl.textContent = data.currentServingTicket;
@@ -275,12 +280,33 @@
         minute: '2-digit',
         second: '2-digit'
       });
+
+      // Mostrar información de debug
+      const urlParams = new URLSearchParams(window.location.search);
+      const hasUrlParams = urlParams.has('serving') || urlParams.has('queue') || urlParams.has('served');
+      debugInfoEl.textContent = `Fuente de datos: ${hasUrlParams ? 'URL Parameters' : 'localStorage'} | URL: ${window.location.href}`;
     }
 
     function getLocalTicketData() {
+      // Primero intentar leer datos de los parámetros de la URL
+      const urlParams = new URLSearchParams(window.location.search);
+      
+      if (urlParams.has('serving') || urlParams.has('queue') || urlParams.has('served')) {
+        console.log('Leyendo datos de parámetros URL');
+        return {
+          currentServingTicket: urlParams.get('serving') || 'Ninguno',
+          servingNumber: parseInt(urlParams.get('serving_num')) || 0,
+          queueLength: parseInt(urlParams.get('queue')) || 0,
+          servedTickets: Array(parseInt(urlParams.get('served')) || 0).fill({}),
+          lastUpdate: urlParams.get('timestamp') || new Date().toISOString()
+        };
+      }
+
+      // Si no hay parámetros URL, intentar localStorage (para uso local)
       try {
         const storedData = localStorage.getItem('ticketSystemData');
         if (storedData) {
+          console.log('Leyendo datos de localStorage');
           const data = JSON.parse(storedData);
           return {
             currentServingTicket: data.currentServingTicket || 'Ninguno',
@@ -295,6 +321,7 @@
       }
       
       // Datos por defecto si no hay nada guardado
+      console.log('Usando datos por defecto');
       return {
         currentServingTicket: 'Ninguno',
         servingNumber: 0,

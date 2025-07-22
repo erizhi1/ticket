@@ -117,18 +117,27 @@ export const useTicketStore = defineStore('ticket', () => {
   function getQRUrl(ticketId) {
     // Detectar el entorno automáticamente
     const currentHost = window.location.hostname
-    const currentPort = window.location.port
-    const currentProtocol = window.location.protocol
+    
+    // Obtener datos actuales para incluir en la URL
+    const currentData = {
+      serving: currentServingTicket.value,
+      queue: queueLength.value,
+      served: servedTickets.value.length,
+      timestamp: Date.now()
+    }
+    
+    // Codificar datos como parámetros URL
+    const params = new URLSearchParams(currentData).toString()
     
     if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
       // Desarrollo local - usar IP de la red para que funcione en teléfonos
-      return `http://192.168.1.116:5173/ticket/current-ticket.html`
+      return `http://192.168.1.116:5173/ticket/current-ticket.html?${params}`
     } else if (currentHost.includes('github.io')) {
-      // GitHub Pages
-      return `${currentProtocol}//${currentHost}/ticket/current-ticket.html`
+      // GitHub Pages - usar URL completa de GitHub Pages
+      return `https://erizhi1.github.io/ticket/current-ticket.html?${params}`
     } else {
       // Producción o cualquier otro entorno
-      return `${window.location.origin}/ticket/current-ticket.html`
+      return `${window.location.origin}/ticket/current-ticket.html?${params}`
     }
   }
 
