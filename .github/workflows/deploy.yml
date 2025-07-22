@@ -28,9 +28,6 @@ jobs:
       - name: Build
         run: npm run build
         
-      - name: Copy additional files
-        run: cp current-ticket.html dist/
-        
       - name: Setup Pages
         uses: actions/configure-pages@v5
         

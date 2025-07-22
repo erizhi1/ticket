@@ -70,8 +70,21 @@ export const useTicketStore = defineStore('ticket', () => {
   }
   
   function getQRUrl(ticketId) {
-    // URL que apunta a la página de consulta de turno actual
-    return `${window.location.origin}/current-ticket`
+    // Detectar el entorno automáticamente
+    const currentHost = window.location.hostname
+    const currentPort = window.location.port
+    const currentProtocol = window.location.protocol
+    
+    if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
+      // Desarrollo local - usar IP de la red para que funcione en teléfonos
+      return `http://192.168.1.116:5173/ticket/current-ticket.html`
+    } else if (currentHost.includes('github.io')) {
+      // GitHub Pages
+      return `${currentProtocol}//${currentHost}/ticket/current-ticket.html`
+    } else {
+      // Producción o cualquier otro entorno
+      return `${window.location.origin}/ticket/current-ticket.html`
+    }
   }
 
   return { 

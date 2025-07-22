@@ -1,15 +1,20 @@
 <template>
-  <canvas 
-    ref="canvas" 
-    :width="size" 
-    :height="size"
-    class="qr-canvas"
-  ></canvas>
+  <div class="qr-container">
+    <canvas 
+      ref="canvas" 
+      :width="size" 
+      :height="size"
+      class="qr-canvas"
+    ></canvas>
+    <div v-if="error" class="qr-error">
+      Error generando QR
+    </div>
+  </div>
 </template>
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
-import qrcode from 'qrcode-generator'
+import QRCode from 'qrcode'
 
 const props = defineProps({
   value: {
@@ -27,35 +32,42 @@ const props = defineProps({
 })
 
 const canvas = ref(null)
+const error = ref(false)
 
-function generateQR() {
-  if (!canvas.value || !props.value) return
+async function generateQR() {
+  if (!canvas.value || !props.value) {
+    console.log('QR Error: Canvas o value faltante', { canvas: !!canvas.value, value: props.value })
+    return
+  }
   
   try {
-    const qr = qrcode(4, props.level)
-    qr.addData(props.value)
-    qr.make()
+    console.log('Generando QR para:', props.value)
+    error.value = false
     
+    // Usar la librería qrcode que es más robusta
+    await QRCode.toCanvas(canvas.value, props.value, {
+      width: props.size,
+      margin: 2,
+      color: {
+        dark: '#000000',
+        light: '#ffffff'
+      },
+      errorCorrectionLevel: props.level
+    })
+    
+    console.log('QR generado exitosamente')
+  } catch (err) {
+    console.error('Error generando QR:', err)
+    error.value = true
+    
+    // Fallback: dibujar un placeholder
     const ctx = canvas.value.getContext('2d')
-    const cells = qr.modules
-    const tileW = props.size / cells.length
-    const tileH = props.size / cells.length
-    
-    // Limpiar canvas
-    ctx.fillStyle = '#ffffff'
+    ctx.fillStyle = '#f0f0f0'
     ctx.fillRect(0, 0, props.size, props.size)
-    
-    // Dibujar QR
-    ctx.fillStyle = '#000000'
-    for (let r = 0; r < cells.length; r++) {
-      for (let c = 0; c < cells[r].length; c++) {
-        if (cells[r][c]) {
-          ctx.fillRect(c * tileW, r * tileH, tileW, tileH)
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Error generando QR:', error)
+    ctx.fillStyle = '#666'
+    ctx.font = '12px Arial'
+    ctx.textAlign = 'center'
+    ctx.fillText('QR Error', props.size / 2, props.size / 2)
   }
 }
 
@@ -73,8 +85,21 @@ watch(() => props.size, () => {
 </script>
 
 <style scoped>
+.qr-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .qr-canvas {
   border: 1px solid #ddd;
   border-radius: 4px;
+}
+
+.qr-error {
+  color: #e74c3c;
+  font-size: 0.8rem;
+  margin-top: 5px;
+  text-align: center;
 }
 </style>

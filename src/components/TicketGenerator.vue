@@ -34,10 +34,10 @@
             <!-- QR Code -->
             <div class="qr-section">
               <div class="qr-code">
-                <QRCode 
+                <QRCodePrintable 
                   :value="qrUrl" 
                   :size="120"
-                  level="M"
+                  :useFallback="true"
                 />
               </div>
               <p class="qr-text">Escanea para ver el turno actual</p>
@@ -63,7 +63,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useTicketStore } from '../stores/ticketStore'
-import QRCode from './QRCode.vue'
+import QRCodePrintable from './QRCodePrintable.vue'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 
@@ -73,7 +73,11 @@ const showTicket = ref(false)
 const generatedTicket = ref(null)
 const ticketRef = ref(null)
 
-const qrUrl = computed(() => ticketStore.getQRUrl())
+const qrUrl = computed(() => {
+  const url = ticketStore.getQRUrl()
+  console.log('QR URL generada:', url)
+  return url
+})
 const queuePosition = computed(() => {
   if (!generatedTicket.value) return 0
   return ticketStore.waitingQueue.findIndex(t => t.id === generatedTicket.value.id) + 1
@@ -103,29 +107,91 @@ function closeTicket() {
 
 async function printTicket() {
   try {
-    const canvas = await html2canvas(ticketRef.value, {
-      backgroundColor: '#ffffff',
-      scale: 2
-    })
+    // Esperar un poco para que las imágenes se carguen completamente
+    await new Promise(resolve => setTimeout(resolve, 1000))
     
-    // Crear nueva ventana para imprimir
+    // Intentar captura con html2canvas
+    try {
+      const canvas = await html2canvas(ticketRef.value, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        foreignObjectRendering: true,
+        logging: false
+      })
+      
+      // Verificar si el canvas tiene contenido
+      const ctx = canvas.getContext('2d')
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      const hasContent = imageData.data.some((channel, index) => 
+        index % 4 !== 3 && channel !== 255 // No es canal alpha y no es blanco
+      )
+      
+      if (hasContent) {
+        // Crear nueva ventana para imprimir
+        const printWindow = window.open('', '_blank')
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>Ticket ${generatedTicket.value?.number}</title>
+              <style>
+                body { margin: 0; padding: 20px; }
+                img { max-width: 100%; height: auto; }
+              </style>
+            </head>
+            <body>
+              <img src="${canvas.toDataURL()}" />
+            </body>
+          </html>
+        `)
+        printWindow.document.close()
+        printWindow.print()
+        return
+      }
+    } catch (canvasError) {
+      console.warn('Error con html2canvas, usando método alternativo:', canvasError)
+    }
+    
+    // Método alternativo: impresión directa del HTML
+    const printContent = ticketRef.value.innerHTML
     const printWindow = window.open('', '_blank')
     printWindow.document.write(`
       <html>
         <head>
           <title>Ticket ${generatedTicket.value?.number}</title>
           <style>
-            body { margin: 0; padding: 20px; }
-            img { max-width: 100%; height: auto; }
+            body { 
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              margin: 0; 
+              padding: 20px; 
+              background: white;
+            }
+            .ticket-print {
+              max-width: 300px;
+              margin: 0 auto;
+              padding: 20px;
+              border: 2px solid #000;
+              border-radius: 10px;
+            }
+            .ticket-header { text-align: center; margin-bottom: 20px; }
+            .ticket-number { font-size: 2rem; font-weight: bold; color: #007bff; }
+            .qr-section { text-align: center; margin: 20px 0; }
+            @media print {
+              body { padding: 0; }
+            }
           </style>
         </head>
         <body>
-          <img src="${canvas.toDataURL()}" />
+          <div class="ticket-print">
+            ${printContent}
+          </div>
         </body>
       </html>
     `)
     printWindow.document.close()
     printWindow.print()
+    
   } catch (error) {
     console.error('Error al imprimir:', error)
     alert('Error al imprimir el ticket')
@@ -134,9 +200,15 @@ async function printTicket() {
 
 async function downloadTicket() {
   try {
+    // Esperar un poco para que las imágenes se carguen completamente
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
     const canvas = await html2canvas(ticketRef.value, {
       backgroundColor: '#ffffff',
-      scale: 2
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      foreignObjectRendering: true
     })
     
     const pdf = new jsPDF('p', 'mm', [80, 120]) // Tamaño de ticket pequeño
