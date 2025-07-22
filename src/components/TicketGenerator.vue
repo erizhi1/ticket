@@ -37,7 +37,6 @@
                 <QRCodePrintable 
                   :value="qrUrl" 
                   :size="120"
-                  :useFallback="true"
                 />
               </div>
               <p class="qr-text">Escanea para ver el turno actual</p>
@@ -177,8 +176,20 @@ async function printTicket() {
             .ticket-header { text-align: center; margin-bottom: 20px; }
             .ticket-number { font-size: 2rem; font-weight: bold; color: #007bff; }
             .qr-section { text-align: center; margin: 20px 0; }
+            .qr-code img { 
+              -webkit-print-color-adjust: exact !important; 
+              print-color-adjust: exact !important; 
+              background: white !important;
+              border: 1px solid #ddd;
+            }
             @media print {
-              body { padding: 0; }
+              body { padding: 0; margin: 0; }
+              .qr-code img { 
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important; 
+                background: white !important;
+                filter: none !important;
+              }
             }
           </style>
         </head>

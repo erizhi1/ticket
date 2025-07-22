@@ -1,26 +1,19 @@
 <template>
   <div class="qr-printable">
-    <!-- QR visible para el usuario -->
+    <!-- QR principal usando base64 para mejor impresión -->
     <img 
-      v-if="!useFallback"
-      :src="qrImageUrl" 
+      v-if="qrDataUrl"
+      :src="qrDataUrl" 
       :alt="`QR Code para ${value}`"
       :width="size"
       :height="size"
-      class="qr-image"
-      @error="handleImageError"
-      @load="handleImageLoad"
-      crossorigin="anonymous"
+      class="qr-image-inline"
     />
     
-    <!-- Fallback que siempre funciona para impresión -->
-    <canvas 
-      v-if="useFallback"
-      ref="qrCanvas"
-      :width="size"
-      :height="size"
-      class="qr-canvas"
-    ></canvas>
+    <!-- Placeholder mientras se genera -->
+    <div v-else class="qr-placeholder">
+      <div class="loading">Generando QR...</div>
+    </div>
     
     <!-- Información adicional para debug -->
     <div v-if="showDebug" class="debug-info">
@@ -30,7 +23,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import QRCode from 'qrcode'
 
 const props = defineProps({
@@ -52,69 +45,40 @@ const props = defineProps({
   }
 })
 
-const qrCanvas = ref(null)
-const imageLoaded = ref(false)
+const qrDataUrl = ref('')
 
-const qrImageUrl = computed(() => {
-  const encodedValue = encodeURIComponent(props.value)
-  return `https://api.qrserver.com/v1/create-qr-code/?size=${props.size}x${props.size}&data=${encodedValue}&format=png`
-})
-
-async function generateCanvasQR() {
-  if (!qrCanvas.value || !props.value) return
+async function generateQRDataUrl() {
+  if (!props.value) return
   
   try {
-    await QRCode.toCanvas(qrCanvas.value, props.value, {
+    // Generar QR como base64 data URL para mejor impresión
+    const dataUrl = await QRCode.toDataURL(props.value, {
       width: props.size,
       margin: 2,
       color: {
         dark: '#000000',
         light: '#ffffff'
-      }
+      },
+      type: 'image/png'
     })
-    console.log('QR Canvas generado exitosamente')
+    qrDataUrl.value = dataUrl
+    console.log('QR DataURL generado exitosamente')
   } catch (error) {
-    console.error('Error generando QR Canvas:', error)
-    // Dibujar un placeholder simple
-    const ctx = qrCanvas.value.getContext('2d')
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, props.size, props.size)
-    ctx.fillStyle = '#000000'
-    ctx.font = '12px Arial'
-    ctx.textAlign = 'center'
-    ctx.fillText('QR', props.size / 2, props.size / 2)
+    console.error('Error generando QR DataURL:', error)
+    // Fallback con imagen generada por API
+    const encodedValue = encodeURIComponent(props.value)
+    qrDataUrl.value = `https://api.qrserver.com/v1/create-qr-code/?size=${props.size}x${props.size}&data=${encodedValue}&format=png`
   }
-}
-
-function handleImageError() {
-  console.warn('Error cargando imagen QR')
-  imageLoaded.value = false
-}
-
-function handleImageLoad() {
-  console.log('Imagen QR cargada exitosamente')
-  imageLoaded.value = true
 }
 
 onMounted(() => {
-  if (props.useFallback) {
-    generateCanvasQR()
-  }
+  generateQRDataUrl()
 })
 
 watch(() => props.value, () => {
-  if (props.useFallback) {
-    generateCanvasQR()
-  }
-})
-
-watch(() => props.useFallback, (newVal) => {
-  if (newVal) {
-    generateCanvasQR()
-  }
+  generateQRDataUrl()
 })
 </script>
-
 <style scoped>
 .qr-printable {
   display: flex;
@@ -122,10 +86,29 @@ watch(() => props.useFallback, (newVal) => {
   align-items: center;
 }
 
-.qr-image,
-.qr-canvas {
+.qr-image-inline {
   border: 1px solid #ddd;
   border-radius: 4px;
+  /* Asegurar que la imagen se imprima correctamente */
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  background: white;
+}
+
+.qr-placeholder {
+  width: 120px;
+  height: 120px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+}
+
+.loading {
+  font-size: 12px;
+  color: #666;
 }
 
 .debug-info {
@@ -134,5 +117,15 @@ watch(() => props.useFallback, (newVal) => {
   margin-top: 5px;
   word-break: break-all;
   max-width: 120px;
+}
+
+/* Estilos específicos para impresión */
+@media print {
+  .qr-image-inline {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    filter: none !important;
+    background: white !important;
+  }
 }
 </style>
