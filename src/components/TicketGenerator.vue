@@ -367,10 +367,64 @@ async function downloadTicket() {
     tempDiv.style.position = 'absolute'
     tempDiv.style.left = '-9999px'
     tempDiv.style.top = '-9999px'
+    tempDiv.style.visibility = 'hidden'
     document.body.appendChild(tempDiv)
     
-    // Esperar un poco para que las imágenes se carguen
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    console.log('Elemento temporal agregado al DOM')
+    
+    // Función para verificar si las imágenes están cargadas
+    const waitForImages = () => {
+      return new Promise((resolve) => {
+        const images = tempDiv.querySelectorAll('img')
+        console.log('Imágenes encontradas:', images.length)
+        
+        if (images.length === 0) {
+          console.log('No hay imágenes, continuando...')
+          resolve()
+          return
+        }
+        
+        let loadedCount = 0
+        const totalImages = images.length
+        
+        const checkComplete = () => {
+          loadedCount++
+          console.log(`Imagen ${loadedCount}/${totalImages} cargada`)
+          if (loadedCount === totalImages) {
+            console.log('Todas las imágenes cargadas')
+            resolve()
+          }
+        }
+        
+        images.forEach((img, index) => {
+          if (img.complete) {
+            console.log(`Imagen ${index} ya estaba cargada`)
+            checkComplete()
+          } else {
+            img.onload = () => {
+              console.log(`Imagen ${index} cargó exitosamente`)
+              checkComplete()
+            }
+            img.onerror = () => {
+              console.log(`Error cargando imagen ${index}, continuando...`)
+              checkComplete()
+            }
+          }
+        })
+        
+        // Timeout de seguridad
+        setTimeout(() => {
+          console.log('Timeout alcanzado, continuando sin esperar más imágenes')
+          resolve()
+        }, 3000)
+      })
+    }
+    
+    // Esperar a que las imágenes se carguen
+    await waitForImages()
+    
+    // Esperar un poco más para asegurar renderizado completo
+    await new Promise(resolve => setTimeout(resolve, 500))
     
     // Capturar con html2canvas
     const canvas = await html2canvas(tempDiv.firstElementChild, {
@@ -382,26 +436,109 @@ async function downloadTicket() {
       logging: false
     })
     
+    // Verificar que el canvas tiene contenido
+    if (!canvas || canvas.width === 0 || canvas.height === 0) {
+      throw new Error('Error: Canvas vacío, no se puede generar PDF')
+    }
+    
+    console.log('Canvas generado exitosamente:', canvas.width, 'x', canvas.height)
+    
     // Remover el elemento temporal
     document.body.removeChild(tempDiv)
     
-    // Crear PDF
-    const pdf = new jsPDF('p', 'mm', [80, 120]) // Tamaño de ticket pequeño
-    const imgData = canvas.toDataURL('image/png')
+    // Crear PDF con tamaño más grande para mejor calidad
+    const pdf = new jsPDF('p', 'mm', [80, 120])
+    const imgData = canvas.toDataURL('image/png', 1.0) // Máxima calidad
+    
+    console.log('Datos de imagen generados, tamaño:', imgData.length, 'bytes')
+    
+    // Verificar que tenemos datos de imagen
+    if (!imgData || imgData === 'data:,') {
+      throw new Error('Error: No se pudieron generar los datos de imagen')
+    }
+    
+    // Calcular dimensiones para el PDF
+    const pdfWidth = 70
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width
     
     // Agregar imagen al PDF
-    const imgWidth = 70
-    const imgHeight = (canvas.height * imgWidth) / canvas.width
-    pdf.addImage(imgData, 'PNG', 5, 5, imgWidth, imgHeight)
+    pdf.addImage(imgData, 'PNG', 5, 5, pdfWidth, pdfHeight, undefined, 'FAST')
+    
+    // Generar nombre único para el archivo
+    const fileName = `ticket-${generatedTicket.value?.number}-${Date.now()}.pdf`
     
     // Descargar
-    pdf.save(`ticket-${generatedTicket.value?.number}.pdf`)
+    pdf.save(fileName)
     
-    console.log('PDF generado exitosamente')
+    console.log('PDF generado y descargado exitosamente:', fileName)
     
   } catch (error) {
-    console.error('Error al generar PDF:', error)
-    alert('Error al generar el PDF: ' + error.message)
+    console.error('Error detallado al generar PDF:', error)
+    
+    // Intentar método alternativo con menos opciones de html2canvas
+    try {
+      console.log('Intentando método alternativo para PDF...')
+      
+      // Crear elemento temporal más simple
+      const simpleDiv = document.createElement('div')
+      simpleDiv.style.cssText = `
+        position: absolute; 
+        left: -9999px; 
+        top: -9999px; 
+        width: 300px; 
+        padding: 20px; 
+        background: white; 
+        color: black;
+        font-family: Arial, sans-serif;
+      `
+      
+      simpleDiv.innerHTML = `
+        <div style="text-align: center; border: 2px solid black; padding: 20px;">
+          <h3>SISTEMA DE TURNOS</h3>
+          <div style="font-size: 40px; font-weight: bold; color: blue; margin: 20px 0;">
+            ${generatedTicket.value?.number}
+          </div>
+          <p><strong>Fecha:</strong> ${formatDate(generatedTicket.value?.timestamp)}</p>
+          <p><strong>Hora:</strong> ${formatTime(generatedTicket.value?.timestamp)}</p>
+          <p><strong>Personas delante:</strong> ${queuePosition.value}</p>
+          <div style="margin: 20px 0;">
+            ${qrImageSrc ? `<img src="${qrImageSrc}" width="100" height="100" style="border: 1px solid black;" />` : '<div>QR Code no disponible</div>'}
+          </div>
+          <p style="font-size: 12px;">Escanea para ver el turno actual</p>
+          <p><strong>Conserve este ticket</strong></p>
+        </div>
+      `
+      
+      document.body.appendChild(simpleDiv)
+      
+      // Captura más simple
+      const simpleCanvas = await html2canvas(simpleDiv, {
+        backgroundColor: '#ffffff',
+        scale: 1,
+        logging: true
+      })
+      
+      document.body.removeChild(simpleDiv)
+      
+      if (simpleCanvas && simpleCanvas.width > 0) {
+        const pdf = new jsPDF('p', 'mm', [80, 120])
+        const imgData = simpleCanvas.toDataURL('image/png')
+        
+        const pdfWidth = 70
+        const pdfHeight = (simpleCanvas.height * pdfWidth) / simpleCanvas.width
+        
+        pdf.addImage(imgData, 'PNG', 5, 5, pdfWidth, pdfHeight)
+        pdf.save(`ticket-${generatedTicket.value?.number}-simple.pdf`)
+        
+        console.log('PDF alternativo generado exitosamente')
+      } else {
+        alert('Error: No se pudo generar el PDF. Intente usar la función de imprimir.')
+      }
+      
+    } catch (fallbackError) {
+      console.error('Error en método alternativo:', fallbackError)
+      alert('Error al generar el PDF: ' + error.message + '\n\nIntente usar la función de imprimir en su lugar.')
+    }
   }
 }
 
