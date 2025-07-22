@@ -37,7 +37,6 @@
                 <QRCodePrintable 
                   :value="qrUrl" 
                   :size="120"
-                  :showDebug="true"
                 />
               </div>
               <p class="qr-text">Escanea para ver el turno actual</p>
@@ -108,89 +107,42 @@ function closeTicket() {
 async function printTicket() {
   try {
     // Esperar un poco para que las imágenes se carguen completamente
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    await new Promise(resolve => setTimeout(resolve, 500))
     
-    // Obtener todas las imágenes del ticket
-    const ticketElement = ticketRef.value
-    const images = ticketElement.querySelectorAll('img')
-    
-    // Crear una copia del contenido con las imágenes base64 embebidas
-    const clonedElement = ticketElement.cloneNode(true)
-    const clonedImages = clonedElement.querySelectorAll('img')
-    
-    // Asegurar que todas las imágenes tengan src base64
-    for (let i = 0; i < images.length; i++) {
-      if (images[i].src && images[i].src.startsWith('data:')) {
-        clonedImages[i].src = images[i].src
-      }
-    }
-    
-    // Intentar captura con html2canvas primero
+    // Generar QR directamente para la impresión
+    let qrImageSrc = ''
     try {
-      const canvas = await html2canvas(ticketElement, {
-        backgroundColor: '#ffffff',
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        foreignObjectRendering: true,
-        logging: false,
-        onclone: (clonedDoc) => {
-          // Asegurar que las imágenes se muestren en el clone
-          const clonedImages = clonedDoc.querySelectorAll('img')
-          const originalImages = ticketElement.querySelectorAll('img')
-          clonedImages.forEach((img, index) => {
-            if (originalImages[index] && originalImages[index].src.startsWith('data:')) {
-              img.src = originalImages[index].src
-            }
-          })
-        }
+      // Intentar generar QR como base64
+      const QRCode = (await import('qrcode')).default
+      qrImageSrc = await QRCode.toDataURL(qrUrl.value, {
+        width: 120,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#ffffff'
+        },
+        type: 'image/png'
       })
-      
-      // Verificar si el canvas tiene contenido
-      const ctx = canvas.getContext('2d')
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-      const hasContent = imageData.data.some((channel, index) => 
-        index % 4 !== 3 && channel !== 255 // No es canal alpha y no es blanco
-      )
-      
-      if (hasContent) {
-        // Crear nueva ventana para imprimir
-        const printWindow = window.open('', '_blank')
-        printWindow.document.write(`
-          <html>
-            <head>
-              <title>Ticket ${generatedTicket.value?.number}</title>
-              <style>
-                body { margin: 0; padding: 20px; }
-                img { max-width: 100%; height: auto; }
-              </style>
-            </head>
-            <body>
-              <img src="${canvas.toDataURL()}" />
-            </body>
-          </html>
-        `)
-        printWindow.document.close()
-        printWindow.print()
-        return
-      }
-    } catch (canvasError) {
-      console.warn('Error con html2canvas, usando método alternativo:', canvasError)
+      console.log('QR generado para impresión:', qrImageSrc.substring(0, 50) + '...')
+    } catch (qrError) {
+      console.warn('Error generando QR, usando API fallback:', qrError)
+      const encodedValue = encodeURIComponent(qrUrl.value)
+      qrImageSrc = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodedValue}&format=png`
     }
     
-    // Método alternativo: impresión directa del HTML con imágenes embebidas
-    const printContent = clonedElement.innerHTML
-    const printWindow = window.open('', '_blank')
-    printWindow.document.write(`
+    // Crear el HTML de impresión con QR embebido
+    const printHTML = `
       <html>
         <head>
           <title>Ticket ${generatedTicket.value?.number}</title>
+          <meta charset="UTF-8">
           <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
             body { 
-              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-              margin: 0; 
+              font-family: 'Arial', sans-serif;
               padding: 20px; 
               background: white;
+              color: black;
             }
             .ticket-print {
               max-width: 300px;
@@ -198,48 +150,125 @@ async function printTicket() {
               padding: 20px;
               border: 2px solid #000;
               border-radius: 10px;
+              background: white;
             }
-            .ticket-header { text-align: center; margin-bottom: 20px; }
-            .ticket-number { font-size: 2rem; font-weight: bold; color: #007bff; }
-            .qr-section { text-align: center; margin: 20px 0; }
+            .ticket-header { 
+              text-align: center; 
+              margin-bottom: 20px; 
+            }
+            .ticket-header h3 {
+              font-size: 1.2rem;
+              margin-bottom: 10px;
+            }
+            .ticket-number { 
+              font-size: 2.5rem; 
+              font-weight: bold; 
+              color: #007bff; 
+              margin: 15px 0;
+            }
+            .ticket-body p {
+              margin: 8px 0;
+              font-size: 14px;
+            }
+            .queue-info {
+              font-weight: bold;
+              margin: 15px 0;
+            }
+            .qr-section { 
+              text-align: center; 
+              margin: 20px 0; 
+              background: white;
+            }
+            .qr-code {
+              margin: 10px 0;
+            }
             .qr-code img { 
-              -webkit-print-color-adjust: exact !important; 
-              print-color-adjust: exact !important; 
-              background: white !important;
               border: 1px solid #ddd;
-              display: block !important;
-              visibility: visible !important;
+              background: white;
+              display: block;
+              margin: 0 auto;
+            }
+            .qr-text {
+              font-size: 12px;
+              margin-top: 10px;
+              color: #666;
+            }
+            .ticket-footer {
+              margin-top: 20px;
+              text-align: center;
+            }
+            .ticket-footer p {
+              font-weight: bold;
+              margin: 10px 0;
+            }
+            .ticket-footer small {
+              font-size: 10px;
+              color: #666;
+              word-break: break-all;
             }
             @media print {
-              body { padding: 0; margin: 0; }
+              body { 
+                padding: 0; 
+                margin: 0; 
+              }
               .qr-code img { 
                 -webkit-print-color-adjust: exact !important; 
                 print-color-adjust: exact !important; 
                 background: white !important;
-                filter: none !important;
-                display: block !important;
-                visibility: visible !important;
+                border: 1px solid #000 !important;
               }
             }
           </style>
         </head>
         <body>
           <div class="ticket-print">
-            ${printContent}
+            <div class="ticket-header">
+              <h3>SISTEMA DE TURNOS</h3>
+              <div class="ticket-number">${generatedTicket.value?.number}</div>
+            </div>
+            
+            <div class="ticket-body">
+              <p><strong>Fecha:</strong> ${formatDate(generatedTicket.value?.timestamp)}</p>
+              <p><strong>Hora:</strong> ${formatTime(generatedTicket.value?.timestamp)}</p>
+              <p class="queue-info">Personas delante: ${queuePosition.value}</p>
+              
+              <div class="qr-section">
+                <div class="qr-code">
+                  <img src="${qrImageSrc}" alt="QR Code" width="120" height="120" />
+                </div>
+                <p class="qr-text">Escanea para ver el turno actual</p>
+              </div>
+              
+              <div class="ticket-footer">
+                <p>Conserve este ticket</p>
+                <small>${qrUrl.value}</small>
+              </div>
+            </div>
           </div>
         </body>
       </html>
-    `)
+    `
+    
+    // Abrir ventana de impresión
+    const printWindow = window.open('', '_blank', 'width=400,height=600')
+    if (!printWindow) {
+      alert('No se pudo abrir la ventana de impresión. Verifique que los popups estén permitidos.')
+      return
+    }
+    
+    printWindow.document.write(printHTML)
     printWindow.document.close()
     
-    // Esperar un poco antes de imprimir para que las imágenes se carguen
-    setTimeout(() => {
-      printWindow.print()
-    }, 500)
+    // Esperar a que se cargue todo antes de imprimir
+    printWindow.onload = () => {
+      setTimeout(() => {
+        printWindow.print()
+      }, 1000)
+    }
     
   } catch (error) {
     console.error('Error al imprimir:', error)
-    alert('Error al imprimir el ticket')
+    alert('Error al imprimir el ticket: ' + error.message)
   }
 }
 
